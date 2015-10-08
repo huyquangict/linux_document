@@ -1,0 +1,11 @@
+Step 1: Check list the mysql rpm which is installed on server
+      #rpm -qa | grep mysql
+  or
+      #yum list installed | grep mysql
+      
+Step 2 : Remove all mysql-related packages (with “yum remove”)
+      #yum remove -y mysql_packages_name
+      
+Step 3: Delete the databases folder
+      #rm /var/lib/mysql -rf
+      #rm /etc/my.cnf -rf
