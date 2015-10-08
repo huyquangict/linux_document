@@ -1,0 +1,11 @@
+mysqldump will backup by default all the triggers but NOT the stored procedures/functions. There are 2 mysqldump parameters that 
+control this behavior:
+      —routines – FALSE by default
+      —triggers – TRUE by default
+      
+We need to specify –routines to take backup of stored procedures with data and tables.
+Following command will take backup of entire database including stored procedures. For example your database name is “mydb”.
+      # mysqldump -u root -p --routines mydb > mydb.sql
+      
+To take backup of only Stored Procedures and Triggers ( No data and tables ) use following command.
+      # mysqldump --routines --no-create-info --no-data --no-create-db --skip-opt mydb > mydb.sql
