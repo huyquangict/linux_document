@@ -1,0 +1,22 @@
+Display prompt in blue color, along with username, host and current directory information
+  
+    $ export PS1="\e[0;34m\u@\h \w> \e[m"
+    [Note: This is for light blue prompt]
+
+    $ export PS1="\e[1;34m\u@\h \w> \e[m"
+    [Note: This is for dark blue prompt]
+    
+\e[ – Indicates the beginning of color prompt
+x;ym – Indicates color code. Use the color code values mentioned below.
+\e[m – indicates the end of color prompt
+
+Color Code Table:
+    Black 0;30
+    Blue 0;34
+    Green 0;32
+    Cyan 0;36
+    Red 0;31
+    Purple 0;35
+    Brown 0;33
+    [Note: Replace 0 with 1 for dark color]
+  
