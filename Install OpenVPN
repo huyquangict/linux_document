@@ -1,0 +1,89 @@
+# Install epel-release.
+wget https://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+rpm -Uvh epel-release-6-8.noarch.rpm
+
+# Stop selinux
+setenforce 0
+
+# Install easy-rsa & openvpn
+yum install -y easy-rsa.noarch openvpn.x86_64
+
+# Configure openvpn
+chkconfig openvpn on
+mkdir /etc/openvpn/easy-rsa/keys -p
+cp -rf /usr/share/easy-rsa/2.0/* /etc/openvpn/easy-rsa/
+vi /etc/openvpn/easy-rsa/vars
+--------edit file------------
+        export KEY_COUNTRY="VN"
+        export KEY_PROVINCE="HN"
+        export KEY_CITY="HaNoi"
+        export KEY_ORG="DMMFX"
+        export KEY_EMAIL="huy.do.quang@sofiamedix.vn"
+        export KEY_OU="ITA-OM"
+------------------------------
+cp /etc/openvpn/easy-rsa/openssl-1.0.0.cnf /etc/openvpn/easy-rsa/openssl.cnf
+source vars
+/etc/openvpn/easy-rsa/clean-all
+/etc/openvpn/easy-rsa/build-ca
+/etc/openvpn/easy-rsa/build-key-server vpn-server
+/etc/openvpn/easy-rsa/build-dh
+cd /etc/openvpn/easy-rsa/keys
+cp ca.crt vpn-server.crt vpn-server.key dh2048.pem /etc/openvpn/
+vi /etc/openvpn/server.conf
+---------edit file----------------------------------------------------
+        port 1194
+        proto udp
+        dev tun
+        ca ca.crt
+        cert vpn-server.crt
+        key vpn-server.key # This file should be kept secret
+        dh dh2048.pem
+        #VPN subnet for OpenVPN to draw client addresses from.
+        server 172.16.10.0 255.255.255.0
+        ifconfig-pool-persist ipp.txt
+        #Push routes to the client to allow it to reach other
+        #private subnets behind the server.
+        ;push "route 10.10.10.0 255.255.255.0"
+        push "redirect-gateway def1 bypass-dhcp"
+        #If you want that all of your Internet traffic pass
+        #through the VPN server then enable this
+        ;push "redirect-gateway def1 bypass-dhcp"
+        # For name resolution, enable this
+        ;push "dhcp-option DNS 10.10.10.254"
+        push "dhcp-option DNS 8.8.8.8"
+        client-to-client
+        keepalive 10 120
+        comp-lzo
+        max-clients 10
+        persist-key
+        persist-tun
+        status openvpn-status.log
+        verb 5
+        mute 20
+-------------------------------------------------------------------
+/etc/init.d/openvpn restart
+
+# Create client certificates.
+cd /etc/openvpn/easy-rsa/
+./build-key vpn-client
+
+# configure IP forwarding.
+echo 1 > /proc/sys/net/ipv4/ip_forward
+sysctl -p /etc/sysctl.conf
+
+# configure iptables to allow tcp/udp connection to openvpn port and forwarding traffic.
+iptables -A INPUT -i eth0 -m state --state NEW -p udp --dport 1194 -j ACCEPT
+iptables -A INPUT -i tun+ -j ACCEPT
+iptables -A FORWARD -i tun+ -j ACCEPT
+iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -t nat -A POSTROUTING -s 172.16.10.0/24 -o eth0 -j MASQUERADE
+iptables -A OUTPUT -o tun+ -j ACCEPT
+
+# Link down vpn client.
+http://sourceforge.net/projects/securepoint/
+
+# Copy 3 files from vpn server to configure vpn client.
+1) /etc/openvpn/ca.crt
+2) /etc/openvpn/easy-rsa/keys/vpn-client.crt
+3) /etc/openvpn/easy-rsa/keys/vpn-client.key
